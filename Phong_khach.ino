@@ -23,7 +23,18 @@ DHT dht(DHTPIN, DHTTYPE);
 
 
 void setup() {
-  // put your setup code here, to run once:
+  // Khoi tao Timer 1
+
+  TCCR1A = 0;
+  TCCR1B = 0;     // thanh ghi de cau hinh ti le chia cua Timer
+  TIMSK1 = 0 ;    // thanh ghi quy dinh hinh thuc ngat
+
+  // duoi day la cau hinh cho Timer
+  TCCR1B |= (1 << CS12) | (0 << CS11) | (0 << CS10); // ti le chia la 1/64
+  TCNT1 = 34286;      // thoi gian nhay vao ngat la sau moi 500ms
+  TIMSK1 = (1 << TOIE1); // hinh thuc ngat la ngat khi tran
+  sei() ;           // cho phep ngat toan cuc
+
   Serial.begin(9600);
   dht.begin();
 
@@ -49,21 +60,21 @@ void loop() {
     if (cmd == '0') {
       digitalWrite(den_pk, 0);
       state_den_pk = false;
-      Serial.println(state_den_pk);
+//      Serial.println(state_den_pk);
     } else if (cmd == '1') {
       digitalWrite(den_pk, 1);
       state_den_pk = true;
-      Serial.println(state_den_pk);
+//      Serial.println(state_den_pk);
     } else if ((cmd == '2') || (temp < 27)) {
       digitalWrite(quat_pk, 0);
       state_quat_pk = false;
-      Serial.println(state_quat_pk);
+//      Serial.println(state_quat_pk);
     } else if ((cmd == '3') || (temp >= 27) {
       digitalWrite(quat_pk, 1);
       state_quat_pk = true;
-      Serial.println(state_quat_pk);
+//      Serial.println(state_quat_pk);
     }
-    Serial.println(cmd);
+//    Serial.println(cmd);
   }
 }
 
@@ -88,4 +99,13 @@ void QUAT_PHONG_KHACH() {
       state_quat_pk = 0;
     }
   }
+}
+
+//Chuong trinh con ngat Timer1
+ISR(TIMER1_OVF_vect) { // Ngắt của timer 1
+  temp = dht.readTemperature();                                                                                                                           
+  humid = dht.readHumidity();
+  Serial.write(temp);
+  Serial.write(humid);
+  TCNT1 = 34286;
 }
