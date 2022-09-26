@@ -28,7 +28,9 @@ int status = WL_IDLE_STATUS;
 int temp, humid;
 int modeam_s;
 char ch;
+char data[5];
 float lastSend = 0;
+String str;
 
 void setup()
 {
@@ -62,11 +64,32 @@ void loop()
   }
   if (Serial.available())
   {
-    String str;
+    String str = Serial.readStringUntil('|');
+    str.toCharArray(data,5);
+    temp = serial_data(data);
     str = Serial.readStringUntil('|');
-    temp = str.toInt();
-    str = Serial.readStringUntil('|');
-    humid = str.toInt();
+    str.toCharArray(data,5);
+    humid = serial_data(data);
+
+//    int size;
+//    size = Serial.readBytesUntil('\n', data, 3);
+//    temp = serial_data(data, size);
+//    Serial.println(temp);
+//    size = Serial.readBytesUntil('\n', data, 3);
+//    humid = serial_data(data, size);
+//    Serial.println(humid);
+
+//    int size = Serial.readBytesUntil('\n',data,3);
+//    temp = serial_data(data, size);
+//    size = Serial.readBytesUntil('\n',data,3);
+//    humid = serial_data(data, size);
+
+//    str = Serial.readStringUntil('|');
+////    temp = str.toInt();
+//    temp = (int)str;
+//    str = Serial.readStringUntil('|');
+////    humid = str.toInt();
+//    humid = (int)str;
 
 //    ch = Serial.read();
 //    if (ch == 'E') {
@@ -211,8 +234,6 @@ void SendDataToThingsboard(int temp, int humid)
     client.publish( "v1/devices/me/telemetry", attributes1 );
   }
   Serial.println("Sent data to Thingsboard ");
-  Serial.println(temp);
-  Serial.println(humid);
   lastSend = millis();
 }
 
@@ -257,4 +278,12 @@ void reconnect() {
     // Wait 5 seconds before retrying
     delay( 5000 );
   }
+}
+
+int serial_data(char data[]) {
+  long result = 0;
+  for (int i = 0; i < sizeof(data)/sizeof(char) ; i++) {
+    result = result * 10 + (int(data[i]) - 48);
+  }
+  return result;
 }

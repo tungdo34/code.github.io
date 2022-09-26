@@ -15,7 +15,7 @@ bool state_den_pk = false;
 bool state_quat_pk = false;
 int temp, humid;
 long last;
-char buffer[40];
+char buffer[50];
 char cmd;  //Nhan lenh tu app
 /*
   + Den: 0, 1
@@ -121,8 +121,10 @@ void QUAT_PHONG_KHACH() {
 }
 
 void SEND_DATA() {
-  sprintf(buffer, "%d|%d|", temp, humid);
+  sprintf(buffer, "%d\n%d\n", temp, humid);
   Serial.write(buffer);
+//  Serial.println(temp);
+//  Serial.println(humid);
 }
 ////Chuong trinh con ngat Timer1
 //ISR(TIMER1_OVF_vect) { // Ngắt của timer 1
