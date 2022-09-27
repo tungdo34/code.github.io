@@ -64,41 +64,10 @@ void loop()
   }
   if (Serial.available())
   {
-    String str = Serial.readStringUntil('|');
-    str.toCharArray(data,5);
-    temp = serial_data(data);
-    str = Serial.readStringUntil('|');
-    str.toCharArray(data,5);
-    humid = serial_data(data);
-
-//    int size;
-//    size = Serial.readBytesUntil('\n', data, 3);
-//    temp = serial_data(data, size);
-//    Serial.println(temp);
-//    size = Serial.readBytesUntil('\n', data, 3);
-//    humid = serial_data(data, size);
-//    Serial.println(humid);
-
-//    int size = Serial.readBytesUntil('\n',data,3);
-//    temp = serial_data(data, size);
-//    size = Serial.readBytesUntil('\n',data,3);
-//    humid = serial_data(data, size);
-
-//    str = Serial.readStringUntil('|');
-////    temp = str.toInt();
-//    temp = (int)str;
-//    str = Serial.readStringUntil('|');
-////    humid = str.toInt();
-//    humid = (int)str;
-
-//    ch = Serial.read();
-//    if (ch == 'E') {
-//      delay(5);
-//      temp = Serial.read();
-//      delay(5);
-//      humid = Serial.read();
-//      delay(5);
-      SendDataToThingsboard(temp, humid);
+    temp = Serial.read();
+    delay(5);
+    humid = Serial.read();
+    SendDataToThingsboard(temp, humid);
 //    }
   }
 

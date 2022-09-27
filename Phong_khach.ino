@@ -51,15 +51,10 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(button_den_pk), DEN_PHONG_KHACH, FALLING);
   attachInterrupt(digitalPinToInterrupt(button_quat_pk), QUAT_PHONG_KHACH, FALLING);
 
-//  temp = dht.readTemperature();
-//  humid = dht.readHumidity();
-  temp = 27;
-  humid =65;
-
-//  Serial.println(temp);
-//  Serial.println(humid);
-//  Serial.write(temp);                                                                                                                                   
-//+ Serial.write(humid);
+  temp = dht.readTemperature();
+  humid = dht.readHumidity();
+//  temp = 27;
+//  humid =65;
 
   last = 0;
 }
@@ -85,14 +80,9 @@ void loop() {
       state_quat_pk = true;
 //      Serial.println(state_quat_pk);
     }
-//    Serial.println(cmd);
   }
   if ((millis() - last) >= 1500) {
     SEND_DATA();
-//    Serial.println(temp);                                                                                                                                   
-//+   Serial.println(humid);
-//    Serial.write(50);                                                                                                                                   
-//+   Serial.write(100);
     last = millis();
   }
 }
@@ -121,16 +111,6 @@ void QUAT_PHONG_KHACH() {
 }
 
 void SEND_DATA() {
-  sprintf(buffer, "%d\n%d\n", temp, humid);
-  Serial.write(buffer);
-//  Serial.println(temp);
-//  Serial.println(humid);
+  Serial.write(temp);                                                                                                                                   
+  Serial.write(humid);
 }
-////Chuong trinh con ngat Timer1
-//ISR(TIMER1_OVF_vect) { // Ngắt của timer 1
-////  temp = dht.readTemperature();
-////  humid = dht.readHumidity();
-//  Serial.write(int(temp));
-//  Serial.write(int(humid));
-//  TCNT1 = 34286;
-//}
