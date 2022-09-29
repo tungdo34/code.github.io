@@ -1,5 +1,9 @@
 //Khai bao thu vien
 #include "DHT.h"
+#include <Servo.h>
+#include <Keypad.h>
+#include <Key.h>
+#include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 
 //Khai bao cac chan
