@@ -1,19 +1,19 @@
 //Khai bao thu vien
 #include "DHT.h"
-//#include <Servo.h>
 #include <Keypad.h>
 #include <Key.h>
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 
 //Khai bao cac chan
-const int DHTPIN = A2;
+const int DHTPIN = 22;
 const int DHTTYPE = DHT11;
 const int SVPIN = 12;
-#define den_pk 13
-#define quat_pk 11
-#define button_den_pk A0
-#define button_quat_pk A1
+#define den_pk 48
+#define quat_pk 46
+#define button_den_pk 53
+#define button_quat_pk 52
+#define button_cua_pk 51
 
 // Khai bao cua Keypad - PassWord cho cua chinh
 const byte ROWS = 4;
@@ -30,8 +30,8 @@ char keys[ROWS][COLS] =
 
 char pass[] = {'1', '2', '3', '4', '5', '6'}; // pass nguoi dung dat
 char newpass[6];
-byte rowPins[ROWS] = {10, 9, 8, 7};
-byte colPins[COLS] = {6, 5, 4, 3};
+byte rowPins[ROWS] = {37, 35, 33, 31};
+byte colPins[COLS] = {29, 27, 25, 23};
 int f = 0; // to Enter Clear Display one time
 
 //Bien trang thai cua thiet bi
@@ -56,19 +56,7 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 void setup() {
-  cli();                                  //Disable global interrupt
-  /* Reset Timer/Counter1 */
-  TCCR1A = 0;
-  TCCR1B = 0;
-  TIMSK1 = 0;
-
-  /* Setup Timer/Counter1 */
-  TCCR1B |= (1 << CS11) | (1 << CS10);    // prescale = 64
-  TCNT1 = 40536;
-  TIMSK1 = (1 << TOIE1);                  // Overflow interrupt enable
-  sei();                                  //Enable global interrupt
-
-  Serial.begin(9600);
+  Serial1.begin(9600);
   dht.begin();
   lcd.init();
   lcd.backlight();
@@ -84,27 +72,23 @@ void setup() {
   digitalWrite(den_pk, LOW);
   digitalWrite(quat_pk, LOW);
 
-  attachInterrupt(digitalPinToInterrupt(button_den_pk), DEN_PHONG_KHACH, FALLING);
-  attachInterrupt(digitalPinToInterrupt(button_quat_pk), QUAT_PHONG_KHACH, FALLING);
-
-//  myservo.attach(SVPIN);
-//  myservo.write(0);
+//  attachInterrupt(digitalPinToInterrupt(button_den_pk), DEN_PHONG_KHACH, FALLING);
+//  attachInterrupt(digitalPinToInterrupt(button_quat_pk), QUAT_PHONG_KHACH, FALLING);
 
   temp = dht.readTemperature();
   humid = dht.readHumidity();
 
   servo_close(SVPIN);
 
-  cli();                                  //Disable global interrupt                                                    
-  /* Reset Timer/Counter1 */                                                                                            
-  TCCR1A = 0;                                                                                                           
-  TCCR1B = 0;                                                                                                           
-  TIMSK1 = 0;                                                                                                           
-                                                                                                                        
-  /* Setup Timer/Counter1 */                                                                                            
-  TCCR1B |= (1 << CS11) | (1 << CS10);    // prescale = 64                                                              
-  TCNT1 = 40536;                                                                                                        
-  TIMSK1 = (1 << TOIE1);                  // Overflow interrupt enable                                                  
+  cli();                                  //Disable global interrupt
+  /* Reset Timer/Counter1 */
+  TCCR1A = 0; 
+  TCCR1B = 0;
+  TIMSK1 = 0;
+  /* Setup Timer/Counter1 */ 
+  TCCR1B |= (1 << CS11) | (1 << CS10);    // prescale = 64
+  TCNT1 = 40536;
+  TIMSK1 = (1 << TOIE1);                  // Overflow interrupt enable 
   sei();
 
   last = 0;
@@ -135,24 +119,24 @@ void loop() {
     }
   }
 
-  if (Serial.available()) {
-    cmd = Serial.read();
+  if (Serial1.available()) {
+    cmd = Serial1.read();
     if (cmd == '0') {
       digitalWrite(den_pk, 0);
       state_den_pk = false;
-//      Serial.println(state_den_pk);
+//      Serial1.println(state_den_pk);
     } else if (cmd == '1') {
       digitalWrite(den_pk, 1);
       state_den_pk = true;
-//      Serial.println(state_den_pk);
+//      Serial1.println(state_den_pk);
     } else if ((cmd == '2') || (temp < 27)) {
       digitalWrite(quat_pk, 0);
       state_quat_pk = false;
-//      Serial.println(state_quat_pk);
+//      Serial1.println(state_quat_pk);
     } else if ((cmd == '3') || (temp >= 27)) {
       digitalWrite(quat_pk, 1);
       state_quat_pk = true;
-//      Serial.println(state_quat_pk);
+//      Serial1.println(state_quat_pk);
     }
   }
   if ((millis() - last) >= 1500) {
@@ -187,8 +171,8 @@ void QUAT_PHONG_KHACH() {
 }
 
 void SEND_DATA() {
-  Serial.write(temp);                                                                                              
-  Serial.write(humid);
+  Serial1.write(temp);                                                                                              
+  Serial1.write(humid);
 }
 
 void passWord() {
@@ -268,5 +252,5 @@ void servo_close(int pin) {
 }
 ISR(TIMER1_OVF_vect) {
   passWord();
-  TCNT1 = 53035;
+  TCNT1 = 40536;
 }
