@@ -14,6 +14,25 @@ const int DHTTYPE = DHT11;
 #define button_den_pk 2
 #define button_quat_pk 3
 
+// Khai bao cua Keypad - PassWord cho cua chinh
+const byte ROWS = 4;
+const byte COLS = 4;
+int k = 0; // đếm số kí tự trong Pass đúng
+int i = 0; //giới hạn kí tự của pass
+int error = 0;
+char keys[ROWS][COLS] =
+{ {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+}; // Keypad Form
+
+char pass[] = {'1', '2', '3', '4', '5', '6'}; // pass nguoi dung dat
+char newpass[6];
+byte rowPins[ROWS] = {6, 7, 8, 9};
+byte colPins[COLS] = {2, 3, 4, 5};
+int f = 0; // to Enter Clear Display one time
+
 //Bien trang thai cua thiet bi
 bool state_den_pk = false;
 bool state_quat_pk = false;
@@ -27,7 +46,8 @@ char cmd;  //Nhan lenh tu app
 
 */
 DHT dht(DHTPIN, DHTTYPE);
-
+LiquidCrystal_I2C lcd(0x27,16,2);
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 void setup() {
 //  // Khoi tao Timer 1
@@ -43,6 +63,9 @@ void setup() {
 
   Serial.begin(9600);
   dht.begin();
+  lcd.init();
+  lcd.backlight();
+  
 
   pinMode(den_pk, OUTPUT);
   pinMode(quat_pk, OUTPUT);
@@ -88,6 +111,8 @@ void loop() {
   if ((millis() - last) >= 1500) {
     SEND_DATA();
     last = millis();
+    temp = dht.readTemperature();
+    humid = dht.readHumidity();
   }
 }
 
@@ -118,3 +143,51 @@ void SEND_DATA() {
   Serial.write(temp);                                                                                                                                   
   Serial.write(humid);
 }
+
+//void passWord() {
+//  char key = keypad.getKey();
+//  if (key != NO_KEY && i < 6)
+//  {
+//    if (f == 0)
+//    {
+//      lcd.clear();
+//      f = 1;
+//    }
+//    lcd.setCursor(0, 0);
+//    lcd.print("Mat khau:");
+//    lcd.setCursor(i, 1);
+//    lcd.print("*");
+//    newpass[i] = key;
+//    if (newpass[i] == pass[i]) k++;
+//    i++;
+//  }
+//  if (k == 6) {
+////    state_door = 1; //
+////    x = 1;
+////    if (state_denpk == 0) { // neu den dang tat thi bat den len
+////      digitalWrite(relay_denpk, 0); // bat den
+////      state_denpk = 1; // doi trang thai den la ON
+////    }
+////    if (state_dieuhoapk == 0) { // neu dieu hoa dang tat thi bat len
+////      digitalWrite(relay_dieuhoapk, 0); // bat den
+////      state_dieuhoapk = 1; // doi trang thai den la ON
+//    }
+//    k = 7;
+//    return;
+//  } else if (k < 6 && i == 6) {
+//    lcd.clear();
+//    lcd.print("Mat khau sai !");
+//    delay(1000);
+//    i = 0;
+//    k = 0;
+//    error++;
+//    if (error < 5) {
+//      lcd.clear();
+//      lcd.print("  Xin moi nhap");
+//      lcd.setCursor(0, 1);
+//      lcd.print("Mat khau:");
+//    }
+//    f = 0;
+//    return;
+//  }
+//}
