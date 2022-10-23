@@ -9,12 +9,15 @@
 const int DHTPIN = 22;     //Cam bien nhiet do & do am
 const int DHTTYPE = DHT11;
 const int SVPIN = 12;      //Dong co cua chinh
+const int CB_MUA = 2;      //Cam bien mua
+const int CB_TROM = 3;     //Cam bien bao trom
 //Thiet bi phong khach
 #define den_pk 48
 #define quat_pk 46
 #define button_den_pk 53
 #define button_quat_pk 52
 #define button_cua_pk 51
+#define button_bao_trom A10
 //Thiet bi phong ngu
 #define den_pn 44
 #define quat_pn 42
@@ -62,9 +65,14 @@ long last;
 char buffer[50];
 char cmd;  //Nhan lenh tu app
 /*
-  + Den: 0, 1
-  + Quat: 2, 3
-
+  + Den phong khach: 0, 1
+  + Quat phong khach: 2, 3
+  + Den phong ngu: 4, 5
+  + Quat phong ngu: 6, 7
+  + Den phong bep: 8, 9
+  + Quat phong bep: a, b
+  + Den phong ve sinh: c, d
+  + Quat phong ve sinh: e, f
 */
 //Servo myservo;
 DHT dht(DHTPIN, DHTTYPE);
