@@ -9,8 +9,8 @@
 const int DHTPIN = 22;     //Cam bien nhiet do & do am
 const int DHTTYPE = DHT11;
 const int SVPIN = 12;      //Dong co cua chinh
-const int CB_MUA = 2;      //Cam bien mua
-const int CB_TROM = 3;     //Cam bien bao trom
+#define CB_MUA = 2      //Cam bien mua
+#define CB_TROM = 3     //Cam bien bao trom
 //Thiet bi phong khach
 #define den_pk 48
 #define quat_pk 46
@@ -56,7 +56,13 @@ int f = 0; // to Enter Clear Display one time
 //Bien trang thai cua thiet bi
 bool state_den_pk = false;
 bool state_quat_pk = false;
-bool door_state = false;
+bool state_den_pn = false;
+bool state_quat_pn = false;
+bool state_den_pb = false;
+bool state_quat_pb = false;
+bool state_den_vs = false;
+bool state_quat_vs = false;
+bool state_door = false;
 bool wait = false;
 long wait_time, wait_time1;
 int temp, humid;
@@ -89,15 +95,42 @@ void setup() {
 
   pinMode(den_pk, OUTPUT);
   pinMode(quat_pk, OUTPUT);
-  pinMode(button_den_pk, INPUT_PULLUP);
-  pinMode(button_quat_pk, INPUT_PULLUP);
+  pinMode(button_den_pk, INPUT);
+  pinMode(button_quat_pk, INPUT);
+  digitalWrite(button_den_pk, HIGH);
+  digitalWrite(button_quat_pk, HIGH);
+
+  pinMode(den_pn, OUTPUT);
+  pinMode(quat_pn, OUTPUT);
+  pinMode(button_den_pn, INPUT);
+  pinMode(button_quat_pn, INPUT);
+  digitalWrite(button_den_pn, HIGH);
+  digitalWrite(button_quat_pn, HIGH);
+
+  pinMode(den_pb, OUTPUT);
+  pinMode(quat_pb, OUTPUT);
+  pinMode(button_den_pb, INPUT);
+  pinMode(button_quat_pb, INPUT);
+  digitalWrite(button_den_pb, HIGH);
+  digitalWrite(button_quat_pb, HIGH);
+
+  pinMode(den_vs, OUTPUT);
+  pinMode(quat_vs, OUTPUT);
+  pinMode(button_den_vs, INPUT);
+  pinMode(button_quat_vs, INPUT);
+  digitalWrite(button_den_vs, HIGH);
+  digitalWrite(button_quat_vs, HIGH);
+
   pinMode(SVPIN, OUTPUT);
 
   digitalWrite(den_pk, LOW);
   digitalWrite(quat_pk, LOW);
-
-//  attachInterrupt(digitalPinToInterrupt(button_den_pk), DEN_PHONG_KHACH, FALLING);
-//  attachInterrupt(digitalPinToInterrupt(button_quat_pk), QUAT_PHONG_KHACH, FALLING);
+  digitalWrite(den_pn, LOW);
+  digitalWrite(quat_pn, LOW);
+  digitalWrite(den_pb, LOW);
+  digitalWrite(quat_pb, LOW);
+  digitalWrite(den_vs, LOW);
+  digitalWrite(quat_vs, LOW);
 
   temp = dht.readTemperature();
   humid = dht.readHumidity();
@@ -120,11 +153,11 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (door_state == true) {
+  if (state_door == true) {
     if ((millis() - wait_time) > 1500) {
       lcd.clear();
       lcd.print("Xin chao!");
-      door_state = false;
+      state_door = false;
       servo_close(SVPIN);
     }
   }
@@ -143,24 +176,81 @@ void loop() {
     }
   }
 
+  if (digitalRead(button_den_pk) == 0) {
+    DEN_PHONG_KHACH();
+  }
+  if (digitalRead(button_quat_pk) == 0) {
+    QUAT_PHONG_KHACH();
+  }
+  if (digitalRead(button_den_pn) == 0) {
+    DEN_PHONG_NGU();
+  }
+  if (digitalRead(button_quat_pn) == 0) {
+    QUAT_PHONG_NGU();
+  }
+  if (digitalRead(button_den_pb) == 0) {
+    DEN_PHONG_BEP();
+  }
+  if (digitalRead(button_quat_pb) == 0) {
+    QUAT_PHONG_BEP();
+  }
+  if (digitalRead(button_den_vs) == 0) {
+    DEN_PHONG_VS();
+  }
+  if (digitalRead(button_quat_vs) == 0) {
+    QUAT_PHONG_VS();
+  }
+
   if (Serial1.available()) {
     cmd = Serial1.read();
     if (cmd == '0') {
       digitalWrite(den_pk, 0);
       state_den_pk = false;
-//      Serial1.println(state_den_pk);
     } else if (cmd == '1') {
       digitalWrite(den_pk, 1);
       state_den_pk = true;
-//      Serial1.println(state_den_pk);
     } else if ((cmd == '2') || (temp < 27)) {
       digitalWrite(quat_pk, 0);
       state_quat_pk = false;
-//      Serial1.println(state_quat_pk);
     } else if ((cmd == '3') || (temp >= 27)) {
       digitalWrite(quat_pk, 1);
       state_quat_pk = true;
-//      Serial1.println(state_quat_pk);
+    } else if ((cmd == '4')) {
+      digitalWrite(den_pn, 0);
+      state_den_pn = false;
+    } else if ((cmd == '5')) {
+      digitalWrite(den_pn, 1);
+      state_den_pn = true;
+    } else if ((cmd == '6') || (temp < 27)) {
+      digitalWrite(quat_pn, 0);
+      state_quat_pn = false;
+    } else if ((cmd == '7') || (temp >= 27)) {
+      digitalWrite(quat_pn, 1);
+      state_quat_pn = true;
+    } else if ((cmd == '8')) {
+      digitalWrite(den_pb, 0);
+      state_den_pb = false;
+    } else if ((cmd == '9')) {
+      digitalWrite(den_pb, 1);
+      state_den_pb = true;
+    } else if ((cmd == 'a') || (temp < 27)) {
+      digitalWrite(quat_pb, 0);
+      state_quat_pb = false;
+    } else if ((cmd == 'b') || (temp >= 27)) {
+      digitalWrite(quat_pb, 1);
+      state_quat_pb = true;
+    } else if ((cmd == 'c')) {
+      digitalWrite(den_vs, 0);
+      state_den_vs = false;
+    } else if ((cmd == 'd')) {
+      digitalWrite(den_vs, 1);
+      state_den_vs = true;
+    } else if ((cmd == 'e') || (temp < 27)) {
+      digitalWrite(quat_vs, 0);
+      state_quat_vs = false;
+    } else if ((cmd == 'f') || (temp >= 27)) {
+      digitalWrite(quat_vs, 1);
+      state_quat_vs = true;
     }
   }
   if ((millis() - last) >= 1500) {
@@ -184,12 +274,75 @@ void DEN_PHONG_KHACH() {
 
 void QUAT_PHONG_KHACH() {
   if ((digitalRead(button_quat_pk) == 0)) {
-    if (state_quat_pk == 0) {  //Neu den dang tat thi bat len
+    if (state_quat_pk == 0) {
       digitalWrite(quat_pk, 1);
       state_quat_pk = 1;
-    } else {  //Nguoc lai, neu den dang bat thi tat di
+    } else {
       digitalWrite(quat_pk, 0);
       state_quat_pk = 0;
+    }
+  }
+}
+void DEN_PHONG_NGU() {
+  if (state_den_pn == 0) {  //Neu den dang tat thi bat len
+    digitalWrite(den_pn, 1);
+    state_den_pn = 1;
+  } else {  //Nguoc lai, neu den dang bat thi tat di
+    digitalWrite(den_pn, 0);
+    state_den_pn = 0;
+  }
+}
+
+void QUAT_PHONG_NGU() {
+  if ((digitalRead(button_quat_pn) == 0)) {
+    if (state_quat_pn == 0) {
+      digitalWrite(quat_pn, 1);
+      state_quat_pn = 1;
+    } else {
+      digitalWrite(quat_pn, 0);
+      state_quat_pn = 0;
+    }
+  }
+}
+void DEN_PHONG_BEP() {
+  if (state_den_pb == 0) {  //Neu den dang tat thi bat len
+    digitalWrite(den_pb, 1);
+    state_den_pb = 1;
+  } else {  //Nguoc lai, neu den dang bat thi tat di
+    digitalWrite(den_pb, 0);
+    state_den_pb = 0;
+  }
+}
+
+void QUAT_PHONG_BEP() {
+  if ((digitalRead(button_quat_pb) == 0)) {
+    if (state_quat_pb == 0) {
+      digitalWrite(quat_pb, 1);
+      state_quat_pb = 1;
+    } else {
+      digitalWrite(quat_pb, 0);
+      state_quat_pb = 0;
+    }
+  }
+}
+void DEN_PHONG_VS() {
+  if (state_den_vs == 0) {  //Neu den dang tat thi bat len
+    digitalWrite(den_vs, 1);
+    state_den_vs = 1;
+  } else {  //Nguoc lai, neu den dang bat thi tat di
+    digitalWrite(den_vs, 0);
+    state_den_vs = 0;
+  }
+}
+
+void QUAT_PHONG_VS() {
+  if ((digitalRead(button_quat_vs) == 0)) {
+    if (state_quat_vs == 0) {
+      digitalWrite(quat_vs, 1);
+      state_quat_vs = 1;
+    } else {
+      digitalWrite(quat_vs, 0);
+      state_quat_vs = 0;
     }
   }
 }
@@ -197,6 +350,14 @@ void QUAT_PHONG_KHACH() {
 void SEND_DATA() {
   Serial1.write(temp);                                                                                              
   Serial1.write(humid);
+  Serial1.write(state_den_pk);
+  Serial1.write(state_quat_pk);
+  Serial1.write(state_den_pn);
+  Serial1.write(state_quat_pb);
+  Serial1.write(state_den_pb);
+  Serial1.write(state_quat_pb);
+  Serial1.write(state_den_vs);
+  Serial1.write(state_quat_vs);
 }
 
 void passWord() {
@@ -220,7 +381,7 @@ void passWord() {
   if (k == 6) {
     lcd.clear();
     lcd.print("Moi vao!");
-    door_state = true;
+    state_door = true;
     servo_open(SVPIN);
     wait_time = millis();
     i = 0;
@@ -236,7 +397,7 @@ void passWord() {
       lcd.setCursor(0, 1);
       lcd.print("Nhap lai sau 5s.");
       wait_time1 = millis();
-      door_state = false;
+      state_door = false;
       i = 0;
       k = 0;
       f = 0;
@@ -246,7 +407,7 @@ void passWord() {
       lcd.print("Mat khau sai !");
       wait = true;
       wait_time1 = millis();
-      door_state = false;
+      state_door = false;
       i = 0;
       k = 0;
       f = 0;
