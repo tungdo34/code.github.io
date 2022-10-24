@@ -13,7 +13,7 @@
 #define button_den 2
 #define button_quat 3
 
-Servo servo;
+//Servo servo;
 //Bien trang thai cua thiet bi
 volatile int nhiet_do;
 volatile bool state_den = false;
@@ -45,7 +45,7 @@ void setup() {
   digitalWrite(quat, LOW);
   analogWrite(quat, 0);
   
-  servo.attach(rem);
+//  servo.attach(rem);
   attachInterrupt(digitalPinToInterrupt(button_den), DEN_PHONG_NGU, FALLING);
   attachInterrupt(digitalPinToInterrupt(button_quat), QUAT_PHONG_NGU, FALLING);
 
@@ -119,21 +119,33 @@ void QUAT_PHONG_NGU() {
 
 void REM() {
   if (analogRead(cb_rem) <= 150) { //troi sang, mo rem
-    servo.write(179);
+    servo(2300);
   }
   if ((analogRead(cb_rem) > 150) && (analogRead(cb_rem) <= 500)) {
-    servo.write(80);
+    servo(1450);
   }
   if (analogRead(cb_rem) > 500) { //troi toi, dong het rem
-    servo.write(1);
+    servo(600);
   }  
 }
+
+void servo(int pul_time) {
+//Pulses duration: 600 - 0deg; 1450 - 90deg; 2300 - 180deg
+digitalWrite(rem,HIGH);
+  long t = micros();
+  while ((micros() - t) < pul_time);
+  digitalWrite(rem,LOW);
+  t = micros();
+  while ((micros() - t) < (20000 - pul_time));
+}
+
 void SEND_DATA() {
   Serial.write(nhiet_do); 
   Serial.write(state_den);
   Serial.write(state_quat);
   Serial.write(state_rem);
 }
+
 ISR(TIMER1_OVF_vect) {                                                                                                  
   nhiet_do = 5 * (analogRead(cb_nd)) * 100 / 1024;
   SEND_DATA();                                                                                                           
