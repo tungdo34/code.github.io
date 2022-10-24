@@ -4,6 +4,7 @@
 #include <Key.h>
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
+#include <avr/interrupt.h>
 
 //Khai bao cac chan
 const int DHTPIN = 22;     //Cam bien nhiet do & do am
@@ -417,21 +418,17 @@ void passWord() {
 }
 void servo_open(int pin) {
   digitalWrite(pin,HIGH);
-//  delayMicroseconds(1450);
   long t = micros();
   while ((micros() - t) < 1450);
   digitalWrite(pin,LOW);
-//  delayMicroseconds(18550);
   t = micros();
   while ((micros() - t) < 18550);
 }
 void servo_close(int pin) {
   digitalWrite(pin,HIGH);
-//  delayMicroseconds(600);
   long t = micros();
   while ((micros() - t) < 600);
   digitalWrite(pin,LOW);
-//  delayMicroseconds(19400);
   t = micros();
   while ((micros() - t) < 19400);
 }
