@@ -1,4 +1,5 @@
 //Khai bao thu vien
+#include <SoftwareSerial.h>
 #include "DHT.h"
 #include <Keypad.h>
 #include <Key.h>
@@ -9,31 +10,19 @@
 //Khai bao cac chan
 const int DHTPIN = 22;     //Cam bien nhiet do & do am
 const int DHTTYPE = DHT11;
-const int SVPIN = 12;      //Dong co cua chinh
-#define CB_MUA = 2      //Cam bien mua
-#define CB_TROM = 3     //Cam bien bao trom
+volatile const int SVPIN = 12;      //Dong co cua chinh
+#define CB_MUA = 50     //Cam bien mua
+#define CB_TROM = 52     //Cam bien bao trom
 //Thiet bi phong khach
-#define den_pk 48
-#define quat_pk 46
-#define button_den_pk 53
-#define button_quat_pk 52
-#define button_cua_pk 51
-#define button_bao_trom A10
-//Thiet bi phong ngu
-#define den_pn 44
-#define quat_pn 42
-#define button_den_pn 50
-#define button_quat_pn A15
-//Thiet bi phong bep
-#define den_pb 40
-#define quat_pb 38
-#define button_den_pb A14
-#define button_quat_pb A13
-//Thiet bi phong ve sinh
-#define den_vs 36
-#define quat_vs 34
-#define button_den_vs A12
-#define button_quat_vs A11
+#define den 48
+#define quat 46
+#define quat_enb 46
+#define button_den 19
+#define button_quat 18
+#define button_cua 2
+#define button_bao_trom 3
+#define rxPin 51
+#define txPin 53
 
 // Khai bao cua Keypad - PassWord cho cua chinh
 const byte ROWS = 4;
@@ -57,20 +46,16 @@ int f = 0; // to Enter Clear Display one time
 //Bien trang thai cua thiet bi
 bool state_den_pk = false;
 bool state_quat_pk = false;
-bool state_den_pn = false;
-bool state_quat_pn = false;
-bool state_den_pb = false;
-bool state_quat_pb = false;
-bool state_den_vs = false;
-bool state_quat_vs = false;
-bool state_door = false;
-bool wait = false;
-long wait_time, wait_time1;
-int temp, humid;
+bool state_den_pn, state_quat_pn, state_den_pb, state_quat_pb, state_den_vs, state_quat_vs;
+volatile bool state_baotrom = false;
+volatile bool state_door = false;
+volatile bool state_button_door = false;
+volatile bool wait = false;
+volatile long wait_time, wait_time1;
+int nhiet_do_pk, do_am_pk, nhiet_do_pn, do_am_pn;
 
 long last;
-char buffer[50];
-char cmd;  //Nhan lenh tu app
+char cmd = '0';  //Nhan lenh tu app
 /*
   + Den phong khach: 0, 1
   + Quat phong khach: 2, 3
@@ -85,58 +70,48 @@ char cmd;  //Nhan lenh tu app
 DHT dht(DHTPIN, DHTTYPE);
 LiquidCrystal_I2C lcd(0x27,16,2);
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+SoftwareSerial Serial4 (rxPin, txPin); //RX pin: 51, TX pin: 53
 
 void setup() {
-  Serial1.begin(9600);
+  pinMode(rxPin, INPUT);
+  pinMode(txPin, OUTPUT);
+  Serial4.begin(9600);  //Giao tiep phong ve sinh
+  Serial.begin(9600);   //Giao tiep ESP
+  Serial2.begin(9600);  //Giao tiep phong ngu
+  Serial3.begin(9600);  //Giao tiep phong bep
+  Serial.flush(); 
+  Serial2.flush(); 
+  Serial3.flush(); 
+  
   dht.begin();
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("Xin chao!");
-
-  pinMode(den_pk, OUTPUT);
-  pinMode(quat_pk, OUTPUT);
-  pinMode(button_den_pk, INPUT);
-  pinMode(button_quat_pk, INPUT);
-  digitalWrite(button_den_pk, HIGH);
-  digitalWrite(button_quat_pk, HIGH);
-
-  pinMode(den_pn, OUTPUT);
-  pinMode(quat_pn, OUTPUT);
-  pinMode(button_den_pn, INPUT);
-  pinMode(button_quat_pn, INPUT);
-  digitalWrite(button_den_pn, HIGH);
-  digitalWrite(button_quat_pn, HIGH);
-
-  pinMode(den_pb, OUTPUT);
-  pinMode(quat_pb, OUTPUT);
-  pinMode(button_den_pb, INPUT);
-  pinMode(button_quat_pb, INPUT);
-  digitalWrite(button_den_pb, HIGH);
-  digitalWrite(button_quat_pb, HIGH);
-
-  pinMode(den_vs, OUTPUT);
-  pinMode(quat_vs, OUTPUT);
-  pinMode(button_den_vs, INPUT);
-  pinMode(button_quat_vs, INPUT);
-  digitalWrite(button_den_vs, HIGH);
-  digitalWrite(button_quat_vs, HIGH);
+  
+  pinMode(den, OUTPUT);
+  pinMode(quat, OUTPUT);
+  pinMode(quat_enb, OUTPUT);
+  pinMode(button_den, INPUT_PULLUP);
+  pinMode(button_quat, INPUT_PULLUP);
+  pinMode(button_cua, INPUT_PULLUP);
+  pinMode(button_bao_trom, INPUT_PULLUP);
 
   pinMode(SVPIN, OUTPUT);
 
-  digitalWrite(den_pk, LOW);
-  digitalWrite(quat_pk, LOW);
-  digitalWrite(den_pn, LOW);
-  digitalWrite(quat_pn, LOW);
-  digitalWrite(den_pb, LOW);
-  digitalWrite(quat_pb, LOW);
-  digitalWrite(den_vs, LOW);
-  digitalWrite(quat_vs, LOW);
+  digitalWrite(den, LOW);
+  digitalWrite(quat_enb, LOW);
+  analogWrite(quat, 0);
 
-  temp = dht.readTemperature();
-  humid = dht.readHumidity();
+  nhiet_do_pk = dht.readTemperature();
+  do_am_pk = dht.readHumidity();
 
   servo_close(SVPIN);
+
+  attachInterrupt(digitalPinToInterrupt(button_den), DEN_PHONG_KHACH, FALLING);
+  attachInterrupt(digitalPinToInterrupt(button_quat), QUAT_PHONG_KHACH, FALLING);
+  attachInterrupt(digitalPinToInterrupt(button_cua), CUA_PHONG_KHACH, FALLING);
+  attachInterrupt(digitalPinToInterrupt(button_bao_trom), BAO_TROM, FALLING);
 
   cli();                                  //Disable global interrupt
   /* Reset Timer/Counter1 */
@@ -145,7 +120,7 @@ void setup() {
   TIMSK1 = 0;
   /* Setup Timer/Counter1 */ 
   TCCR1B |= (1 << CS11) | (1 << CS10);    // prescale = 64
-  TCNT1 = 40536;
+  TCNT1 = 51472;
   TIMSK1 = (1 << TOIE1);                  // Overflow interrupt enable 
   sei();
 
@@ -162,7 +137,7 @@ void loop() {
       servo_close(SVPIN);
     }
   }
-  if (error == 3) {
+  if (error == 5) {
     if ((millis() - wait_time1) > 5000) {
       lcd.clear();
       lcd.print("Xin chao!");
@@ -177,188 +152,131 @@ void loop() {
     }
   }
 
-  if (digitalRead(button_den_pk) == 0) {
-    DEN_PHONG_KHACH();
-  }
-  if (digitalRead(button_quat_pk) == 0) {
-    QUAT_PHONG_KHACH();
-  }
-  if (digitalRead(button_den_pn) == 0) {
-    DEN_PHONG_NGU();
-  }
-  if (digitalRead(button_quat_pn) == 0) {
-    QUAT_PHONG_NGU();
-  }
-  if (digitalRead(button_den_pb) == 0) {
-    DEN_PHONG_BEP();
-  }
-  if (digitalRead(button_quat_pb) == 0) {
-    QUAT_PHONG_BEP();
-  }
-  if (digitalRead(button_den_vs) == 0) {
-    DEN_PHONG_VS();
-  }
-  if (digitalRead(button_quat_vs) == 0) {
-    QUAT_PHONG_VS();
-  }
-
-  if (Serial1.available()) {
-    cmd = Serial1.read();
+  if (Serial.available()) {
+    cmd = Serial.read();
     if (cmd == '0') {
-      digitalWrite(den_pk, 0);
+      digitalWrite(den, 0);
       state_den_pk = false;
     } else if (cmd == '1') {
-      digitalWrite(den_pk, 1);
+      digitalWrite(den, 1);
       state_den_pk = true;
-    } else if ((cmd == '2') || (temp < 27)) {
-      digitalWrite(quat_pk, 0);
+    } else if (cmd == '2') {
+      digitalWrite(quat_enb, 0);
       state_quat_pk = false;
-    } else if ((cmd == '3') || (temp >= 27)) {
-      digitalWrite(quat_pk, 1);
+    } else if (cmd == '3') {
+      digitalWrite(quat_enb, 1);
       state_quat_pk = true;
-    } else if ((cmd == '4')) {
-      digitalWrite(den_pn, 0);
+    } else if (cmd == '4') {
       state_den_pn = false;
-    } else if ((cmd == '5')) {
-      digitalWrite(den_pn, 1);
-      state_den_pn = true;
-    } else if ((cmd == '6') || (temp < 27)) {
-      digitalWrite(quat_pn, 0);
-      state_quat_pn = false;
-    } else if ((cmd == '7') || (temp >= 27)) {
-      digitalWrite(quat_pn, 1);
+    } else if (cmd == '5') {
       state_quat_pn = true;
-    } else if ((cmd == '8')) {
-      digitalWrite(den_pb, 0);
+    } else if (cmd == '6') {
       state_den_pb = false;
-    } else if ((cmd == '9')) {
-      digitalWrite(den_pb, 1);
-      state_den_pb = true;
-    } else if ((cmd == 'a') || (temp < 27)) {
-      digitalWrite(quat_pb, 0);
-      state_quat_pb = false;
-    } else if ((cmd == 'b') || (temp >= 27)) {
-      digitalWrite(quat_pb, 1);
+    } else if (cmd == '7') {
       state_quat_pb = true;
-    } else if ((cmd == 'c')) {
-      digitalWrite(den_vs, 0);
+    } else if (cmd == '8') {
       state_den_vs = false;
-    } else if ((cmd == 'd')) {
-      digitalWrite(den_vs, 1);
-      state_den_vs = true;
-    } else if ((cmd == 'e') || (temp < 27)) {
-      digitalWrite(quat_vs, 0);
-      state_quat_vs = false;
-    } else if ((cmd == 'f') || (temp >= 27)) {
-      digitalWrite(quat_vs, 1);
+    } else if (cmd == '9') {
       state_quat_vs = true;
     }
   }
+  if (digitalRead(button_cua) == 0) {
+    if (state_door == 0) {
+      state_door = true;
+      servo_open(SVPIN);
+    }
+    if (state_door == 1) {
+      state_door = false;
+      servo_close(SVPIN);
+    }
+  }
+//  if (state_button_door == 1) {
+//    if (state_door == 0) {
+//      servo_open(SVPIN);
+//      state_door = true;
+//    } 
+//    if (state_door == 1) {
+//      servo_close(SVPIN);
+//      state_door = false;
+//    }
+//    state_button_door = false;
+//  }
+
+  if (Serial2.available()) {
+    nhiet_do_pn = Serial2.read();
+    do_am_pn = Serial2.read();
+  }
   if ((millis() - last) >= 1500) {
+    nhiet_do_pk = dht.readTemperature();
+    do_am_pk = dht.readHumidity();
     SEND_DATA();
     last = millis();
-    temp = dht.readTemperature();
-    humid = dht.readHumidity();
   }
 }
 
-/*Chuong trinh con */
+/* Chuong trinh con phuc vu ngat */
 void DEN_PHONG_KHACH() {
   if (state_den_pk == 0) {  //Neu den dang tat thi bat len
-    digitalWrite(den_pk, 1);
+    digitalWrite(den, 1);
     state_den_pk = 1;
   } else {  //Nguoc lai, neu den dang bat thi tat di
-    digitalWrite(den_pk, 0);
+    digitalWrite(den, 0);
     state_den_pk = 0;
   }
 }
 
 void QUAT_PHONG_KHACH() {
-  if ((digitalRead(button_quat_pk) == 0)) {
-    if (state_quat_pk == 0) {
-      digitalWrite(quat_pk, 1);
-      state_quat_pk = 1;
-    } else {
-      digitalWrite(quat_pk, 0);
-      state_quat_pk = 0;
-    }
+  if (state_quat_pk == 0) {
+    digitalWrite(quat, 1);
+    state_quat_pk = 1;
+  } else {
+    digitalWrite(quat, 0);
+    state_quat_pk = 0;
   }
 }
-void DEN_PHONG_NGU() {
-  if (state_den_pn == 0) {  //Neu den dang tat thi bat len
-    digitalWrite(den_pn, 1);
-    state_den_pn = 1;
-  } else {  //Nguoc lai, neu den dang bat thi tat di
-    digitalWrite(den_pn, 0);
-    state_den_pn = 0;
+void CUA_PHONG_KHACH() {
+//  if (state_door == 0) {
+//    digitalWrite(SVPIN,HIGH); 
+//    long t = micros();
+//    while ((micros() - t) < 1450);
+//    digitalWrite(SVPIN,LOW);
+//    t = micros();
+//    while ((micros() - t) < 18550);  
+//  }
+//  if (state_door == 1) {
+//    digitalWrite(SVPIN,HIGH); 
+//    long t = micros();
+//    while ((micros() - t) < 600);
+//    digitalWrite(SVPIN,LOW);
+//    t = micros();
+//    while ((micros() - t) < 19400);  
+//  }
+  if (state_door == 0) {
+    state_door = true;
+    servo_open(SVPIN);
+  } else {
+    state_door = false;
+    servo_close(SVPIN);
   }
+//  state_button_door = !state_button_door;
 }
-
-void QUAT_PHONG_NGU() {
-  if ((digitalRead(button_quat_pn) == 0)) {
-    if (state_quat_pn == 0) {
-      digitalWrite(quat_pn, 1);
-      state_quat_pn = 1;
-    } else {
-      digitalWrite(quat_pn, 0);
-      state_quat_pn = 0;
-    }
-  }
+void BAO_TROM(){
+  state_baotrom = true;
 }
-void DEN_PHONG_BEP() {
-  if (state_den_pb == 0) {  //Neu den dang tat thi bat len
-    digitalWrite(den_pb, 1);
-    state_den_pb = 1;
-  } else {  //Nguoc lai, neu den dang bat thi tat di
-    digitalWrite(den_pb, 0);
-    state_den_pb = 0;
-  }
-}
-
-void QUAT_PHONG_BEP() {
-  if ((digitalRead(button_quat_pb) == 0)) {
-    if (state_quat_pb == 0) {
-      digitalWrite(quat_pb, 1);
-      state_quat_pb = 1;
-    } else {
-      digitalWrite(quat_pb, 0);
-      state_quat_pb = 0;
-    }
-  }
-}
-void DEN_PHONG_VS() {
-  if (state_den_vs == 0) {  //Neu den dang tat thi bat len
-    digitalWrite(den_vs, 1);
-    state_den_vs = 1;
-  } else {  //Nguoc lai, neu den dang bat thi tat di
-    digitalWrite(den_vs, 0);
-    state_den_vs = 0;
-  }
-}
-
-void QUAT_PHONG_VS() {
-  if ((digitalRead(button_quat_vs) == 0)) {
-    if (state_quat_vs == 0) {
-      digitalWrite(quat_vs, 1);
-      state_quat_vs = 1;
-    } else {
-      digitalWrite(quat_vs, 0);
-      state_quat_vs = 0;
-    }
-  }
-}
-
+/* Chuong trinh con */
 void SEND_DATA() {
-  Serial1.write(temp);                                                                                              
-  Serial1.write(humid);
-  Serial1.write(state_den_pk);
-  Serial1.write(state_quat_pk);
-  Serial1.write(state_den_pn);
-  Serial1.write(state_quat_pb);
-  Serial1.write(state_den_pb);
-  Serial1.write(state_quat_pb);
-  Serial1.write(state_den_vs);
-  Serial1.write(state_quat_vs);
+  Serial.write(nhiet_do_pk);                                                                                            
+  Serial.write(do_am_pk);
+//  Serial.write(nhiet_do_pn);                                                                                            
+//  Serial.write(do_am_pn);
+  Serial.write(state_den_pk);
+  Serial.write(state_quat_pk);
+//  Serial.write(state_den_pn);
+//  Serial.write(state_quat_pb);
+//  Serial.write(state_den_pb);
+//  Serial.write(state_quat_pb);
+//  Serial.write(state_den_vs);
+//  Serial.write(state_quat_vs);
 }
 
 void passWord() {
@@ -392,7 +310,7 @@ void passWord() {
   }
   else if (k < 6 && i == 6) {
     error++;
-    if (error == 3) {
+    if (error == 5) {
       lcd.clear();
       lcd.print("Sai 5 lan !");
       lcd.setCursor(0, 1);
@@ -434,5 +352,5 @@ void servo_close(int pin) {
 }
 ISR(TIMER1_OVF_vect) {
   passWord();
-  TCNT1 = 40536;
+  TCNT1 = 51472;
 }
