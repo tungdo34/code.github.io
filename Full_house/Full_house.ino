@@ -1,13 +1,16 @@
 //Khai bao thu vien
+#include <LiquidCrystal.h>
 #include <SoftwareSerial.h>
 #include "DHT.h"
 #include <Keypad.h>
 #include <Key.h>
-#include <LiquidCrystal_I2C.h>
+//#include <LiquidCrystal_I2C.h>
+#include <Servo.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
 
 //Khai bao cac chan
+const int rs = 34, en = 36, d4 = 30, d5 = 28, d6 = 26, d7 = 24;
 const int DHTPIN = 22;     //Cam bien nhiet do & do am
 const int DHTTYPE = DHT11;
 volatile const int SVPIN = 12;      //Dong co cua chinh
@@ -66,9 +69,10 @@ char cmd = '0';  //Nhan lenh tu app
   + Den phong ve sinh: c, d
   + Quat phong ve sinh: e, f
 */
-//Servo myservo;
+Servo myservo;
 DHT dht(DHTPIN, DHTTYPE);
-LiquidCrystal_I2C lcd(0x27,16,2);
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+//LiquidCrystal_I2C lcd(0x27,16,2);
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 SoftwareSerial Serial4 (rxPin, txPin); //RX pin: 51, TX pin: 53
 
@@ -84,8 +88,9 @@ void setup() {
   Serial3.flush(); 
   
   dht.begin();
-  lcd.init();
-  lcd.backlight();
+//  lcd.init();
+//  lcd.backlight();
+  lcd.begin(16,2);
   lcd.setCursor(0, 0);
   lcd.print("Xin chao!");
   
@@ -105,8 +110,9 @@ void setup() {
 
   nhiet_do_pk = dht.readTemperature();
   do_am_pk = dht.readHumidity();
-
-  servo_close(SVPIN);
+  myservo.attach(SVPIN);
+  myservo.write(0);
+//  servo_close(SVPIN);
 
   attachInterrupt(digitalPinToInterrupt(button_den), DEN_PHONG_KHACH, FALLING);
   attachInterrupt(digitalPinToInterrupt(button_quat), QUAT_PHONG_KHACH, FALLING);
@@ -129,14 +135,15 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (state_door == true) {
-    if ((millis() - wait_time) > 1500) {
-      lcd.clear();
-      lcd.print("Xin chao!");
-      state_door = false;
-      servo_close(SVPIN);
-    }
-  }
+//  if (state_door == true) {
+//    if ((millis() - wait_time) > 1500) {
+//      lcd.clear();
+//      lcd.print("Xin chao!");
+////      state_door = false;
+////      myservo.write(0);
+////      servo_close(SVPIN);
+//    }
+//  }
   if (error == 5) {
     if ((millis() - wait_time1) > 5000) {
       lcd.clear();
@@ -180,27 +187,6 @@ void loop() {
       state_quat_vs = true;
     }
   }
-  if (digitalRead(button_cua) == 0) {
-    if (state_door == 0) {
-      state_door = true;
-      servo_open(SVPIN);
-    }
-    if (state_door == 1) {
-      state_door = false;
-      servo_close(SVPIN);
-    }
-  }
-//  if (state_button_door == 1) {
-//    if (state_door == 0) {
-//      servo_open(SVPIN);
-//      state_door = true;
-//    } 
-//    if (state_door == 1) {
-//      servo_close(SVPIN);
-//      state_door = false;
-//    }
-//    state_button_door = false;
-//  }
 
   if (Serial2.available()) {
     nhiet_do_pn = Serial2.read();
@@ -235,30 +221,20 @@ void QUAT_PHONG_KHACH() {
   }
 }
 void CUA_PHONG_KHACH() {
-//  if (state_door == 0) {
-//    digitalWrite(SVPIN,HIGH); 
-//    long t = micros();
-//    while ((micros() - t) < 1450);
-//    digitalWrite(SVPIN,LOW);
-//    t = micros();
-//    while ((micros() - t) < 18550);  
-//  }
-//  if (state_door == 1) {
-//    digitalWrite(SVPIN,HIGH); 
-//    long t = micros();
-//    while ((micros() - t) < 600);
-//    digitalWrite(SVPIN,LOW);
-//    t = micros();
-//    while ((micros() - t) < 19400);  
-//  }
   if (state_door == 0) {
+    myservo.write(90);
     state_door = true;
-    servo_open(SVPIN);
-  } else {
-    state_door = false;
-    servo_close(SVPIN);
+    lcd.clear();
+    lcd.print("Moi vao!");
+    return;
   }
-//  state_button_door = !state_button_door;
+  if (state_door == 1) {
+    myservo.write(0);
+    state_door = false;
+    lcd.clear();
+    lcd.print("Xin chao!");
+    return;
+  }
 }
 void BAO_TROM(){
   state_baotrom = true;
@@ -298,15 +274,26 @@ void passWord() {
     i++;
   }
   if (k == 6) {
-    lcd.clear();
-    lcd.print("Moi vao!");
-    state_door = true;
-    servo_open(SVPIN);
-    wait_time = millis();
-    i = 0;
-    k = 0;
-    f = 0;
-    return;
+    if (state_door == false) {
+      lcd.clear();
+      lcd.print("Moi vao!");
+      state_door = true;
+      myservo.write(90);
+      i = 0;
+      k = 0;
+      f = 0;
+      return;
+    } 
+    if (state_door == true) {
+      myservo.write(0);
+      state_door = false;
+      lcd.clear();
+      lcd.print("Xin chao!");
+      i = 0;
+      k = 0;
+      f = 0;
+      return;
+    }
   }
   else if (k < 6 && i == 6) {
     error++;
