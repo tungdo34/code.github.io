@@ -15,9 +15,8 @@ const int DHTPIN = 34;     //Cam bien nhiet do & do am
 const int DHTTYPE = DHT11;
 volatile const int SVL = 12;      //Dong co trai cua chinh
 volatile const int SVR = 13;      //Dong co phai cua chinh
-#define CB_MUA  52     //Cam bien mua
 #define CB_TROM  53     //Cam bien bao trom
-#define coi_bao  50
+#define coi_bao  52
 //Thiet bi phong khach
 #define den 47
 #define quat 49
@@ -53,13 +52,12 @@ int f = 0; // to Enter Clear Display one time
 //Bien trang thai cua thiet bi
 bool state_den_pk = false;
 bool state_quat_pk = false;
-bool state_den_pn, state_quat_pn, state_den_pb, state_quat_pb, state_den_vs, state_quat_vs;
-volatile bool state_baotrom = false;
-volatile bool state_door = false;
-volatile bool state_button_door = false;
+bool state_den_pn = false, state_quat_pn = false, state_den_pb = false;
+bool state_quat_pb = false, state_den_vs = false, state_quat_vs = false;
+volatile bool state_baotrom = false, state_door = false, state_button_door = false;
 volatile bool wait = false;
-volatile long wait_time, wait_time1;
-int nhiet_do_pk, do_am_pk, nhiet_do_pn, do_am_pn;
+volatile long wait_time;
+int nhiet_do_pk, do_am_pk, nhiet_do_pn;
 
 long last;
 char cmd = '0';  //Nhan lenh tu app
@@ -71,7 +69,6 @@ char cmd = '0';  //Nhan lenh tu app
   + Den phong bep: 8, 9
   + Quat phong bep: a, b
   + Den phong ve sinh: c, d
-  + Quat phong ve sinh: e, f
 */
 Servo door_l, door_r;
 DHT dht(DHTPIN, DHTTYPE);
@@ -108,8 +105,6 @@ void setup() {
   pinMode(button_quat, INPUT_PULLUP);
   pinMode(button_cua, INPUT_PULLUP);
   pinMode(button_bao_trom, INPUT_PULLUP);
-
-  pinMode(SVL, OUTPUT);
 
   digitalWrite(den, LOW);
   digitalWrite(quat_enb, LOW);
@@ -176,42 +171,16 @@ void loop() {
       digitalWrite(quat_enb, 1);
       state_quat_pk = true;
     } 
-    else if (cmd == '4') {
-      state_den_pn = false;
-    } 
-    else if (cmd == '5') {
-      state_den_pn = true;
-    } 
-    else if (cmd == '6') {
-      state_quat_pn = false;
-    } 
-    else if (cmd == '7') {
-      state_quat_pn = true;
-    } 
-    else if (cmd == '8') {
-      state_den_pb = false;
-    } 
-    else if (cmd == '9') {
-      state_den_pb = true;
-    }
-    else if (cmd == 'a') {
-      state_quat_pb = false;
-    } 
-    else if (cmd == 'b') {
-      state_quat_pb = true;
-    } 
-    else if (cmd == 'c') {
-      state_den_vs = false;
-    } 
-    else if (cmd == 'd') {
-      state_den_vs = true;
-    }
-    else if (cmd == 'e') {
-      state_quat_vs = false;
-    } 
-    else if (cmd == 'f') {
-      state_quat_vs = true;
-    } 
+    else if (cmd == '4') state_den_pn = false;
+    else if (cmd == '5') state_den_pn = true;
+    else if (cmd == '6') state_quat_pn = false;
+    else if (cmd == '7') state_quat_pn = true;
+    else if (cmd == '8') state_den_pb = false;
+    else if (cmd == '9') state_den_pb = true;
+    else if (cmd == 'a') state_quat_pb = false;
+    else if (cmd == 'b') state_quat_pb = true;
+    else if (cmd == 'c') state_den_vs = false;
+    else if (cmd == 'd') state_den_vs = true;
   }
 
   if (Serial2.available()) {
@@ -224,6 +193,7 @@ void loop() {
     SEND_DATA();
     last = millis();
   }
+  //Dieu khien quat
   if (digitalRead(quat_enb) == 1) {
     if (nhiet_do_pk < 30) {
       analogWrite(quat, 128);
@@ -236,6 +206,7 @@ void loop() {
     digitalWrite(quat_enb, 0);
     analogWrite(quat, 0);
   }
+  //Kich hoat bao dong
   if (state_baotrom == 1) {
     if (digitalRead(CB_TROM) == 1) {
       digitalWrite(coi_bao, 1);
@@ -291,21 +262,16 @@ void KICH_HOAT_BAO_TROM(){
 void SEND_DATA() {
   Serial.write(nhiet_do_pk);                                                                                            
   Serial.write(do_am_pk);
-//  Serial.write(nhiet_do_pn);                                                                                            
-//  Serial.write(do_am_pn);
+  Serial.write(nhiet_do_pn);                                                                                            
   Serial.write(state_den_pk);
   Serial.write(state_quat_pk);
-//  Serial.write(state_den_pn);
-//  Serial.write(state_quat_pb);
+  Serial.write(state_den_pn);
+  Serial.write(state_quat_pb);
 //  Serial.write(state_den_pb);
 //  Serial.write(state_quat_pb);
 //  Serial.write(state_den_vs);
 //  Serial.write(state_quat_vs);
 }
-void QUAT() {
-
-}
-
 void passWord() {
   sei();
   char key = keypad.getKey();
@@ -355,7 +321,7 @@ void passWord() {
       lcd.print("Sai 5 lan !");
       lcd.setCursor(0, 1);
       lcd.print("Nhap lai sau 5s.");
-      wait_time1 = millis();
+      wait_time = millis();
       state_door = false;
       i = 0;
       k = 0;
@@ -365,7 +331,7 @@ void passWord() {
       lcd.clear();
       lcd.print("Mat khau sai !");
       wait = true;
-      wait_time1 = millis();
+      wait_time = millis();
       state_door = false;
       i = 0;
       k = 0;

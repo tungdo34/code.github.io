@@ -16,7 +16,6 @@ char Thingsboard_Server[] = "demo.thingsboard.io";
 //#define TOKEN "Cr7wjQlmzqxeQ0py0Q83"
 #define TOKEN "Aewa0xyjAXX3I7YhaqBE"
 
-
 WiFiClient wifiClient;
 WiFiClient espClient;
 
@@ -48,6 +47,9 @@ void setup()
   digitalWrite(valve, LOW);
   digitalWrite(fan, LOW);
   digitalWrite(heater, LOW);
+
+  temp = 12;
+  humid = 15;
   //  digitalWrite(modeam, HIGH);
 
   Serial.begin(9600);
@@ -247,12 +249,4 @@ void reconnect() {
     // Wait 5 seconds before retrying
     delay( 5000 );
   }
-}
-
-int serial_data(char data[]) {
-  long result = 0;
-  for (int i = 0; i < sizeof(data)/sizeof(char) ; i++) {
-    result = result * 10 + (int(data[i]) - 48);
-  }
-  return result;
 }
